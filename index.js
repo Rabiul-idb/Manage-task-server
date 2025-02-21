@@ -1,89 +1,89 @@
-
-const { MongoClient, ServerApiVersion } = require('mongodb');
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io"); 
 
 const app = express();
-
 const port = process.env.PORT || 5000;
 
-// middle ware
-
+// Middleware
 app.use(express.json());
 app.use(cors());
 
+// Create HTTP server and WebSocket server
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 
-
-
-
+// MongoDB Connection
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.f8y06.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-   // await client.connect();
-    // Send a ping to confirm a successful connection
-  //  await client.db("admin").command({ ping: 1 });
+    await client.connect();
+    console.log("Connected to MongoDB!");
 
     const db = client.db("ManageTask");
-    const userCollection = db.collection("users");
+    const toDoCollection = db.collection("toDo");
 
+    //  MongoDB  Change Stream: Watch for real-time updates
+    const changeStream = toDoCollection.watch();
 
-    // add user to db
-    // save or update a user to db
-    app.post('/addUser/:email', async(req, res) =>{
-        const email = req.params.email;
-        const query = {email}
-        const user = req.body
-  
-        // now check the user is exist in db
-        const isExist = await userCollection.findOne(query);
-        if(isExist){
-          return res.send(isExist)
-        }
-  
-        const result = await userCollection.insertOne({
-          ...user, 
-          'login_date': new Date().toLocaleString(),
-        })
-        res.send(result)
-  
-      })
+    changeStream.on("change", (change) => {
+      console.log("Task Change Detected:", change);
 
-    // get all users
-    app.get('/allUsers', async(req, res) =>{
-        const users = await userCollection.find().toArray();
-        res.send(users);
-      })
+      // Send real-time update to frontend via WebSocket
+      io.emit("taskUpdate", change);
+    });
 
+    // Add To-Do Task API
+    app.post("/addTodoTask", async (req, res) => {
+      const todoTask = req.body;
+      const result = await toDoCollection.insertOne(todoTask);
+      res.send(result);
+    });
 
+    // get all task from 
+    app.get('/allTask', async (req, res) => {
+      const result = await toDoCollection.find().toArray();
+      res.send(result)
+    })
 
+    // delete a task
+    app.delete('/deleteTask/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await toDoCollection.deleteOne(query);
+      res.send(result);
+    })
 
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-  //  await client.close();
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error);
   }
 }
+
 run().catch(console.dir);
 
+// Root Route
+app.get("/", (req, res) => {
+  res.send("Hello from Manage Task server");
+});
 
-
-app.get('/', (req, res) => {
-    res.send('Hello from my manage task server')
-})
-
-app.listen(port, () => {
-    console.log('My simple server is running at', port);
-})
+// Start WebSocket + Express Server
+server.listen(port, () => {
+  console.log("Server running at", port);
+});

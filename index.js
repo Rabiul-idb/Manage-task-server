@@ -69,6 +69,7 @@ async function run() {
       const query = {_id: new ObjectId(id)}
       const result = await toDoCollection.deleteOne(query);
       res.send(result);
+
     })
 
   } catch (error) {
@@ -78,7 +79,7 @@ async function run() {
 
 run().catch(console.dir);
 
-// Root Route
+
 app.get("/", (req, res) => {
   res.send("Hello from Manage Task server");
 });

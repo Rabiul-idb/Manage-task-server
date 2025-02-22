@@ -21,7 +21,7 @@ const io = new Server(server, {
   },
 });
 
-// MongoDB Connection
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.f8y06.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -64,7 +64,7 @@ async function run() {
     })
 
     // delete a task
-    app.delete('/deleteTask/:id', async(req, res) => {
+    app.delete('/delete/:id', async(req, res) => {
       const id = req.params.id;
       const query = {_id: new ObjectId(id)}
       const result = await toDoCollection.deleteOne(query);

@@ -72,7 +72,7 @@ async function run() {
     })
 
     //get all task for specific user by email
-    app.get('/allTasks/:email', async (req, res) => {
+    app.get('/todoTasks/:email', async (req, res) => {
       const email = req.params.email;
       const result = await toDoCollection.find({email: email}).toArray();
       res.send(result);

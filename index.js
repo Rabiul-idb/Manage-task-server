@@ -39,6 +39,7 @@ async function run() {
 
     const db = client.db("ManageTask");
     const toDoCollection = db.collection("toDo");
+    const userCollection = db.collection("users");
 
     //  MongoDB  Change Stream: Watch for real-time updates
     const changeStream = toDoCollection.watch();
@@ -49,6 +50,13 @@ async function run() {
       // Send real-time update to frontend via WebSocket
       io.emit("taskUpdate", change);
     });
+
+    //add user to db
+    app.post("/addUser", async(req, res) => {
+      const user = req.body;
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    })
 
     // Add To-Do Task API
     app.post("/addTodoTask", async (req, res) => {
@@ -62,6 +70,15 @@ async function run() {
       const result = await toDoCollection.find().toArray();
       res.send(result)
     })
+
+    //get all task for specific user by email
+    app.get('/allTasks/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await toDoCollection.find({email: email}).toArray();
+      res.send(result);
+
+    })
+
 
     // delete a task
     app.delete('/deleteTask/:id', async(req, res) => {

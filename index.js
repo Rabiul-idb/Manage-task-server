@@ -64,7 +64,7 @@ async function run() {
     })
 
     // delete a task
-    app.delete('/delete/:id', async(req, res) => {
+    app.delete('/deleteTask/:id', async(req, res) => {
       const id = req.params.id;
       const query = {_id: new ObjectId(id)}
       const result = await toDoCollection.deleteOne(query);
